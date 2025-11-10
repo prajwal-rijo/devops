@@ -9,9 +9,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'jmp3',
-                    url: 'https://github.com/Suprith25/Jenkins-mini-project.git'
-            }
+                git branch: 'main', url: 'https://github.com/prajwal-rijo/devops.git'
         }
 
         stage('Build') {
