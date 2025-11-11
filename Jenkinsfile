@@ -10,6 +10,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/prajwal-rijo/devops.git'
+            }
         }
 
         stage('Build') {
@@ -23,12 +24,12 @@ pipeline {
         stage('Upload to JFrog') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'jfrog-creds',
-                                                 usernameVariable: 'JFROG_USER',
-                                                 passwordVariable: 'JFROG_PASS')]) {
+                                                  usernameVariable: 'JFROG_USER',
+                                                  passwordVariable: 'JFROG_PASS')]) {
                     sh '''
                         echo "Uploading WAR to JFrog..."
                         WAR_FILE=$(ls sample-app/target/*.war)
-                        curl -u $JFROG_USER:$JFROG_PASS -T $WAR_FILE \
+                        curl -u $JFROG_USER:$JFROG_PASS -T $WAR_FILE \\
                         "https://trial9krpxa.jfrog.io/artifactory/testrepo-generic-local/${JOB_NAME}-${BUILD_NUMBER}-sample.war"
                     '''
                 }
@@ -59,4 +60,6 @@ pipeline {
                     '''
                 }
             }
-        added new line from prjwal 
+        }
+    }
+}
