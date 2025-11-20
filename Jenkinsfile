@@ -43,7 +43,7 @@ pipeline {
                         echo "Deploying WAR to Tomcat server..."
 
                         WAR_FILE=$(ls sample-app/target/*.war)
-                        SERVER_IP=100.27.185.40
+                        SERVER_IP=18.215.181.119
                         SERVER_USER=ubuntu
                         TOMCAT_DIR=/opt/tomcat/webapps
 
