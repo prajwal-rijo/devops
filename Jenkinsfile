@@ -51,7 +51,7 @@ pipeline {
                         FILE_NAME=\$(basename "\$WAR_FILE")
 
                         # Hardcoded Tomcat Server Details
-                        SERVER_IP=35.171.244.54
+                        SERVER_IP=52.0.251.73
                         SERVER_USER=ubuntu
                         TOMCAT_DIR=/opt/tomcat/webapps
 
