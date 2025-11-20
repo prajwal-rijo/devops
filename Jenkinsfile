@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        SERVER_IP   = "18.215.181.119"
+        SERVER_IP   = "52.0.251.73"
         SERVER_USER = "ubuntu"
         TOMCAT_DIR  = "/opt/tomcat/webapps"
     }
