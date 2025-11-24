@@ -4,6 +4,11 @@ pipeline {
     tools {
         jdk 'jdk17'
         maven 'maven3'
+        sonarScanner 'Sonar-Scanner'   // Added for Sonar
+    }
+
+    environment {
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
@@ -19,6 +24,32 @@ pipeline {
             steps {
                 dir('sample-app') {
                     sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube-Server') {
+                    dir('sample-app') {
+                        sh """
+                            sonar-scanner \
+                            -Dsonar.projectKey=java-mini-project \
+                            -Dsonar.projectName=java-mini-project \
+                            -Dsonar.sources=src \
+                            -Dsonar.java.binaries=target \
+                            -Dsonar.host.url=${SONARQUBE_URL} \
+                            -Dsonar.login=${SONAR_TOKEN}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
