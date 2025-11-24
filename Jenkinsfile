@@ -4,7 +4,6 @@ pipeline {
     tools {
         jdk 'jdk17'
         maven 'maven3'
-        sonarScanner 'Sonar-Scanner'   // Added for Sonar
     }
 
     environment {
@@ -31,14 +30,19 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube-Server') {
+
+                    script {
+                        // Load Sonar Scanner tool
+                        scannerHome = tool name: 'Sonar-Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                    }
+
                     dir('sample-app') {
                         sh """
-                            sonar-scanner \
+                            ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=java-mini-project \
                             -Dsonar.projectName=java-mini-project \
                             -Dsonar.sources=src \
                             -Dsonar.java.binaries=target \
-                            -Dsonar.host.url=${SONARQUBE_URL} \
                             -Dsonar.login=${SONAR_TOKEN}
                         """
                     }
@@ -81,20 +85,16 @@ pipeline {
                         WAR_FILE=\$(ls sample-app/target/*.war)
                         FILE_NAME=\$(basename "\$WAR_FILE")
 
-                        # Hardcoded Tomcat Server Details
                         SERVER_IP=52.0.251.73
                         SERVER_USER=ubuntu
                         TOMCAT_DIR=/opt/tomcat/webapps
 
                         echo "Using server IP: \$SERVER_IP"
 
-                        # Copy WAR file to remote /tmp
                         scp -o StrictHostKeyChecking=no "\$WAR_FILE" \$SERVER_USER@\$SERVER_IP:/tmp/
 
-                        # Move WAR file to Tomcat's webapps directory
                         ssh -o StrictHostKeyChecking=no \$SERVER_USER@\$SERVER_IP "sudo mv /tmp/\$FILE_NAME \$TOMCAT_DIR/"
 
-                        # Restart Tomcat
                         ssh -o StrictHostKeyChecking=no \$SERVER_USER@\$SERVER_IP "sudo systemctl restart tomcat"
 
                         echo "Deployment completed successfully!"
