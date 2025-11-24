@@ -23,6 +23,36 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube-Server') {
+                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                        dir('sample-app') {
+                            sh """
+                                mvn sonar:sonar \
+                                    -Dsonar.login=$SONAR_TOKEN \
+                                    -Dsonar.projectKey=JavaMiniProject \
+                                    -Dsonar.projectName=JavaMiniProject
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') { // Wait max 5 min
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Upload to JFrog') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'jfrog-creds',
