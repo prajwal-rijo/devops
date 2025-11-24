@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk17'       // Must match your Jenkins JDK name
-        maven 'maven3'    // Must match your Jenkins Maven name
+        jdk 'jdk17'       // Ensure this matches your Jenkins JDK name
+        maven 'maven3'    // Ensure this matches your Jenkins Maven name
     }
 
     stages {
@@ -18,7 +18,7 @@ pipeline {
         stage('Build') {
             steps {
                 dir('sample-app') {
-                    sh 'mvn clean package -DskipTests'
+                    sh 'mvn clean package -DskipTests -B'
                 }
             }
         }
@@ -28,12 +28,13 @@ pipeline {
                 withSonarQubeEnv('SonarQube-Server') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                         dir('sample-app') {
-                            sh """
-                                mvn sonar:sonar \
+                            // Use single quotes to avoid Groovy interpolating secrets
+                            sh '''
+                                mvn clean verify sonar:sonar -B \
                                     -Dsonar.login=$SONAR_TOKEN \
                                     -Dsonar.projectKey=JavaMiniProject \
                                     -Dsonar.projectName=JavaMiniProject
-                            """
+                            '''
                         }
                     }
                 }
@@ -42,7 +43,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') { // Wait max 5 min
+                timeout(time: 10, unit: 'MINUTES') { // Increased timeout for large projects
                     script {
                         def qg = waitForQualityGate()
                         if (qg.status != 'OK') {
@@ -60,9 +61,13 @@ pipeline {
                                                  passwordVariable: 'JFROG_PASS')]) {
                     sh '''
                         WAR_FILE=$(ls sample-app/target/*.war)
+                        if [ ! -f "$WAR_FILE" ]; then
+                            echo "WAR file not found!"
+                            exit 1
+                        fi
                         FILE_NAME="${JOB_NAME}-${BUILD_NUMBER}-sample.war"
-                        curl -u $JFROG_USER:$JFROG_PASS -T "$WAR_FILE" \
-                        "https://trial7n02kw.jfrog.io/artifactory/java_warfile_repo-generic-local/$FILE_NAME"
+                        curl -f -u $JFROG_USER:$JFROG_PASS -T "$WAR_FILE" \
+                            "https://trial7n02kw.jfrog.io/artifactory/java_warfile_repo-generic-local/$FILE_NAME"
                     '''
                 }
             }
@@ -71,17 +76,29 @@ pipeline {
         stage('Deploy to Tomcat') {
             steps {
                 sshagent(credentials: ['tomcat-ssh-key']) {
-                    sh """
-                        WAR_FILE=\$(ls sample-app/target/*.war)
-                        FILE_NAME=\$(basename "\$WAR_FILE")
+                    sh '''
+                        WAR_FILE=$(ls sample-app/target/*.war)
+                        if [ ! -f "$WAR_FILE" ]; then
+                            echo "WAR file not found!"
+                            exit 1
+                        fi
+                        FILE_NAME=$(basename "$WAR_FILE")
                         SERVER_IP=52.0.251.73
                         SERVER_USER=ubuntu
                         TOMCAT_DIR=/opt/tomcat/webapps
 
-                        scp -o StrictHostKeyChecking=no "\$WAR_FILE" \$SERVER_USER@\$SERVER_IP:/tmp/
-                        ssh -o StrictHostKeyChecking=no \$SERVER_USER@\$SERVER_IP "sudo mv /tmp/\$FILE_NAME \$TOMCAT_DIR/"
-                        ssh -o StrictHostKeyChecking=no \$SERVER_USER@\$SERVER_IP "sudo systemctl restart tomcat"
-                    """
+                        # Copy WAR to server
+                        scp -o StrictHostKeyChecking=no "$WAR_FILE" $SERVER_USER@$SERVER_IP:/tmp/
+                        
+                        # Move WAR to Tomcat webapps
+                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "sudo mv /tmp/$FILE_NAME $TOMCAT_DIR/"
+
+                        # Restart Tomcat
+                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "sudo systemctl restart tomcat"
+
+                        # Optional: check if Tomcat is running
+                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "systemctl status tomcat --no-pager"
+                    '''
                 }
             }
         }
