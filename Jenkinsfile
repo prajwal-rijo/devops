@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk17'       // Must match your Jenkins JDK name
-        maven 'maven3'    // Must match your Jenkins Maven name
+        jdk 'jdk17'       // Must match your Jenkins JDK installation name
+        maven 'maven3'    // Must match your Jenkins Maven installation name
     }
 
     stages {
@@ -28,9 +28,9 @@ pipeline {
                 withSonarQubeEnv('SonarQube-Server') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                         dir('sample-app') {
-                            // Fully qualified plugin invocation avoids "No plugin found" error
+                            // Use standard plugin invocation; pom.xml includes sonar-maven-plugin
                             sh '''
-                                mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.11.1.2311:sonar -B \
+                                mvn clean verify sonar:sonar -B \
                                     -Dsonar.login=$SONAR_TOKEN \
                                     -Dsonar.projectKey=JavaMiniProject \
                                     -Dsonar.projectName=JavaMiniProject
@@ -96,7 +96,7 @@ pipeline {
                         # Restart Tomcat
                         ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "sudo systemctl restart tomcat"
 
-                        # Optional: check if Tomcat is running
+                        # Optional: check Tomcat status
                         ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "systemctl status tomcat --no-pager"
                     '''
                 }
