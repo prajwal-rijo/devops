@@ -9,7 +9,7 @@ pipeline {
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')          // SonarQube token stored in Jenkins
         SONAR_SCANNER_HOME = "/opt/sonar-scanner"         // Path to SonarScanner CLI
-        SONAR_HOST_URL = "http://your-sonarqube-server:9000" // Update with your SonarQube URL
+        SONAR_HOST_URL = "http://50.17.114.154:9000" // Update with your SonarQube URL
     }
 
     stages {
