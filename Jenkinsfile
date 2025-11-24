@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk17'       // Ensure this matches your Jenkins JDK name
-        maven 'maven3'    // Ensure this matches your Jenkins Maven name
+        jdk 'jdk17'       // Must match your Jenkins JDK name
+        maven 'maven3'    // Must match your Jenkins Maven name
     }
 
     stages {
@@ -28,9 +28,9 @@ pipeline {
                 withSonarQubeEnv('SonarQube-Server') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                         dir('sample-app') {
-                            // Use single quotes to avoid Groovy interpolating secrets
+                            // Fully qualified plugin invocation avoids "No plugin found" error
                             sh '''
-                                mvn clean verify sonar:sonar -B \
+                                mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.11.1.2311:sonar -B \
                                     -Dsonar.login=$SONAR_TOKEN \
                                     -Dsonar.projectKey=JavaMiniProject \
                                     -Dsonar.projectName=JavaMiniProject
@@ -43,7 +43,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') { // Increased timeout for large projects
+                timeout(time: 10, unit: 'MINUTES') {
                     script {
                         def qg = waitForQualityGate()
                         if (qg.status != 'OK') {
