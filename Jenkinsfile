@@ -33,18 +33,20 @@ pipeline {
 
                     script {
                         // Load Sonar Scanner tool
-                        scannerHome = tool name: 'Sonar-Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                        def scannerHome = tool name: 'Sonar-Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
                     }
 
                     dir('sample-app') {
-                        sh """
-                            ${scannerHome}/bin/sonar-scanner \
-                            -Dsonar.projectKey=java-mini-project \
-                            -Dsonar.projectName=java-mini-project \
-                            -Dsonar.sources=src \
-                            -Dsonar.java.binaries=target \
-                            -Dsonar.login=${SONAR_TOKEN}
-                        """
+                        withEnv(["SONAR_TOKEN=${SONAR_TOKEN}"]) {
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=java-mini-project \
+                                -Dsonar.projectName=java-mini-project \
+                                -Dsonar.sources=src \
+                                -Dsonar.java.binaries=target \
+                                -Dsonar.token=$SONAR_TOKEN
+                            """
+                        }
                     }
                 }
             }
@@ -52,7 +54,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 2, unit: 'MINUTES') {
+                timeout(time: 10, unit: 'MINUTES') {  // increased timeout
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -92,9 +94,7 @@ pipeline {
                         echo "Using server IP: \$SERVER_IP"
 
                         scp -o StrictHostKeyChecking=no "\$WAR_FILE" \$SERVER_USER@\$SERVER_IP:/tmp/
-
                         ssh -o StrictHostKeyChecking=no \$SERVER_USER@\$SERVER_IP "sudo mv /tmp/\$FILE_NAME \$TOMCAT_DIR/"
-
                         ssh -o StrictHostKeyChecking=no \$SERVER_USER@\$SERVER_IP "sudo systemctl restart tomcat"
 
                         echo "Deployment completed successfully!"
