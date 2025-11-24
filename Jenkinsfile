@@ -6,6 +6,12 @@ pipeline {
         maven 'maven3'    // Must match your Jenkins Maven installation name
     }
 
+    environment {
+        SONAR_TOKEN = credentials('SONAR_TOKEN')          // SonarQube token stored in Jenkins
+        SONAR_SCANNER_HOME = "/opt/sonar-scanner"         // Path to SonarScanner CLI
+        SONAR_HOST_URL = "http://your-sonarqube-server:9000" // Update with your SonarQube URL
+    }
+
     stages {
 
         stage('Checkout Code') {
@@ -25,18 +31,15 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube-Server') {
-                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                        dir('sample-app') {
-                            // Use standard plugin invocation; pom.xml includes sonar-maven-plugin
-                            sh '''
-                                mvn clean verify sonar:sonar -B \
-                                    -Dsonar.login=$SONAR_TOKEN \
-                                    -Dsonar.projectKey=JavaMiniProject \
-                                    -Dsonar.projectName=JavaMiniProject
-                            '''
-                        }
-                    }
+                dir('sample-app') {
+                    sh '''
+                        ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=JavaMiniProject \
+                        -Dsonar.projectName=JavaMiniProject \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.login=${SONAR_TOKEN}
+                    '''
                 }
             }
         }
