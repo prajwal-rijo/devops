@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk17'       // Must match your Jenkins JDK installation name
-        maven 'maven3'    // Must match your Jenkins Maven installation name
+        jdk 'jdk17'       // Jenkins JDK installation
+        maven 'maven3'    // Jenkins Maven installation
     }
 
     environment {
-        SONAR_SCANNER_HOME = '/opt/sonar-scanner' // Adjust if installed elsewhere
+        SONAR_HOST_URL = 'http://50.17.114.154:9000'   // SonarQube server URL
     }
 
     stages {
@@ -29,21 +29,15 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube-Server') {
-                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                        dir('sample-app') {
-                            // Ensure Java 17 is used for SonarScanner
-                            sh '''
-                                export JAVA_HOME=$JAVA_HOME_17
-                                export PATH=$JAVA_HOME/bin:$PATH
-                                $SONAR_SCANNER_HOME/bin/sonar-scanner \
-                                    -Dsonar.projectKey=JavaMiniProject \
-                                    -Dsonar.projectName=JavaMiniProject \
-                                    -Dsonar.sources=. \
-                                    -Dsonar.host.url=$SONAR_HOST_URL \
-                                    -Dsonar.login=$SONAR_TOKEN
-                            '''
-                        }
+                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                    dir('sample-app') {
+                        sh """
+                            mvn sonar:sonar -B \
+                                -Dsonar.projectKey=JavaMiniProject \
+                                -Dsonar.projectName=JavaMiniProject \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_TOKEN}
+                        """
                     }
                 }
             }
