@@ -46,7 +46,7 @@
                 <version>3.4.0</version>
             </plugin>
 
-            <!-- Sonar Maven Plugin for static code analysis -->
+            <!-- Sonar Maven Plugin -->
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
