@@ -1,37 +1,36 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'JDK17'          // your installed JDK name
-        sonarScanner 'Sonar-Scanner-CLI'
+    environment {
+        MAVEN_HOME = tool 'Maven'     
+        JAVA_HOME  = tool 'jdk17'     // Use your actual JDK name
+        PATH       = "${JAVA_HOME}/bin:${MAVEN_HOME}/bin:${env.PATH}"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                checkout scm
+                git branch: 'main',
+                    url: 'https://github.com/panchami30/Java-mini-project.git',
+                    credentialsId: 'jfrog-creds'
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('Build') {
             steps {
-                withSonarQubeEnv('SonarQube-Server') {
-                    sh """
-                        sonar-scanner \
-                        -Dsonar.projectKey=myproject \
-                        -Dsonar.sources=./src \
-                        -Dsonar.host.url=http://your-sonarqube:9000 \
-                        -Dsonar.login=${SONAR_AUTH_TOKEN}
-                    """
+                dir('sample-app') {
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
 
-        stage("Quality Gate") {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+        // Other stages...
+    }
+
+    post {
+        always {
+            node {  // Wrap cleanWs in node
+                cleanWs()
             }
         }
     }
